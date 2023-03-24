@@ -16,13 +16,12 @@ data class Sms(
 )
 
 class ReceiveSms(
-    channel: ManagedChannel,
+    private val channel: ManagedChannel,
     private val tokenSource: ClientCredentialSource,
     queueName: String,
     private val callback: (sms: Sms) -> Unit,
 ) {
     private val executor = Executors.newFixedThreadPool(10)
-    private val stub = EventsServiceGrpc.newBlockingStub(channel)
 
     private val request = EventsProto.SubscribeEventsRequest.newBuilder()
         .setQueueName(queueName)
@@ -50,28 +49,34 @@ class ReceiveSms(
 
     private fun subscribe() {
         logger.info("Subscribing to SMS events...")
-        stub.withCallCredentials(tokenSource.callCredentials()).subscribe(request).asSequence().forEach {
-            executor.submit {
-                val ackRequest = EventsProto.AckRequest.newBuilder()
-                    .setInbox(it.event.metadata.ackInbox)
-                    .setSequence(it.event.metadata.sequence)
-                    .build()
-                stub.ack(ackRequest)
+        EventsServiceGrpc.newBlockingStub(channel)
+            .withCallCredentials(tokenSource.callCredentials())
+            .subscribe(request)
+            .asSequence()
+            .forEach {
+                executor.submit {
+                    val ackRequest = EventsProto.AckRequest.newBuilder()
+                        .setInbox(it.event.metadata.ackInbox)
+                        .setSequence(it.event.metadata.sequence)
+                        .build()
+                    EventsServiceGrpc.newBlockingStub(channel)
+                        .withCallCredentials(tokenSource.callCredentials())
+                        .ack(ackRequest)
 
-                if (it.event.smsEvent.direction != EventsProto.SmsEvent.Direction.TO_SUBSCRIBER) {
-                    logger.debug("Ignoring outbound SMS")
-                    return@submit
+                    if (it.event.smsEvent.direction != EventsProto.SmsEvent.Direction.TO_SUBSCRIBER) {
+                        logger.debug("Ignoring outbound SMS")
+                        return@submit
+                    }
+
+                    val sms = Sms(
+                        from = it.event.smsEvent.fromE164.e164,
+                        to = it.event.smsEvent.toE164.e164,
+                        content = it.event.smsEvent.text,
+                    )
+
+                    callback(sms)
                 }
-
-                val sms = Sms(
-                    from = it.event.smsEvent.fromE164.e164,
-                    to = it.event.smsEvent.toE164.e164,
-                    content = it.event.smsEvent.text,
-                )
-
-                callback(sms)
             }
-        }
     }
 
     companion object {

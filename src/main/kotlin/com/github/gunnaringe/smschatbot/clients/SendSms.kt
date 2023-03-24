@@ -8,15 +8,13 @@ import org.slf4j.LoggerFactory
 
 class SendSms(private val channel: ManagedChannel, private val tokenSource: ClientCredentialSource) {
 
-    private val stub = SmsServiceGrpc.newBlockingStub(channel)
-
     fun sendSms(from: String, to: String, content: String) {
         val request = SmsProto.SendTextFromSubscriberRequest.newBuilder()
             .setFromSubscriber(from)
             .setToAddress(to)
             .setContent(content)
             .build()
-        val response = stub
+        val response = SmsServiceGrpc.newBlockingStub(channel)
             .withCallCredentials(tokenSource.callCredentials())
             .sendTextFromSubscriber(request)
         if (response.status == SmsProto.SendMessageResponse.SendStatus.SEND_STATUS_OK) {

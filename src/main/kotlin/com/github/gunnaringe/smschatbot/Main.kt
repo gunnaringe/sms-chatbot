@@ -7,6 +7,8 @@ import com.github.gunnaringe.smschatbot.clients.SendSms
 import com.sksamuel.hoplite.ConfigLoaderBuilder
 import com.sksamuel.hoplite.addEnvironmentSource
 import com.sksamuel.hoplite.addFileSource
+import com.wgtwo.api.v1.sms.SmsProto
+import com.wgtwo.api.v1.sms.SmsServiceGrpc
 import com.wgtwo.auth.WgtwoAuth
 import io.grpc.ManagedChannelBuilder
 import org.slf4j.LoggerFactory
