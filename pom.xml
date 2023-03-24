@@ -180,7 +180,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <minimizeJar>true</minimizeJar>
+                    <minimizeJar>false</minimizeJar>
                     <!-- https://github.com/grpc/grpc-java/issues/9387 -->
                     <transformers>
                         <transformer
