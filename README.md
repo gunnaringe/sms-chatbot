@@ -1,5 +1,7 @@
 # SMS Chatbot
 
+![Logo for Chatbot](chatbot.png)
+
 This is a simple SMS chatbot that uses the WG2 API to send and receive SMS messages.
 
 It is hooked up to ChatGPT for generating responses.
