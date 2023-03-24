@@ -40,7 +40,7 @@ fun main(args: Array<String>) {
 
     val sendSmsClient = SendSms(channel, tokenSource)
 
-    ReceiveSms(channel, tokenSource) { sms ->
+    ReceiveSms(channel, tokenSource, config.wg2.eventQueue) { sms ->
         if (sms.to !in config.phones) {
             logger.warn("Ignoring SMS - Non-configured phone number: {}", sms.to)
             return@ReceiveSms

@@ -17,16 +17,16 @@ data class Sms(
 
 class ReceiveSms(
     channel: ManagedChannel,
-    tokenSource: ClientCredentialSource,
+    private val tokenSource: ClientCredentialSource,
+    queueName: String,
     private val callback: (sms: Sms) -> Unit,
 ) {
     private val executor = Executors.newFixedThreadPool(10)
     private val stub = EventsServiceGrpc.newBlockingStub(channel)
-        .withCallCredentials(tokenSource.callCredentials())
 
     private val request = EventsProto.SubscribeEventsRequest.newBuilder()
-        .setQueueName("smschatbot")
-        .setDurableName("smschatbot")
+        .setQueueName(queueName)
+        .setDurableName(queueName)
         .setMaxInFlight(10)
         .addType(EventsProto.EventType.SMS_EVENT)
         .setManualAck(
@@ -50,7 +50,7 @@ class ReceiveSms(
 
     private fun subscribe() {
         logger.info("Subscribing to SMS events...")
-        stub.subscribe(request).asSequence().forEach {
+        stub.withCallCredentials(tokenSource.callCredentials()).subscribe(request).asSequence().forEach {
             executor.submit {
                 val ackRequest = EventsProto.AckRequest.newBuilder()
                     .setInbox(it.event.metadata.ackInbox)

@@ -11,6 +11,8 @@ data class Config(
 data class Wg2Config(
     val clientId: String,
     val clientSecret: Masked,
+
+    val eventQueue: String = "smschatbot",
 )
 
 data class OpenAIConfig(
