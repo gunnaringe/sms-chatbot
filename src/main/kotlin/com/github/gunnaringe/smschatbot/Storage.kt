@@ -7,6 +7,17 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
+val system = Message(
+    role = "system",
+    content = """
+        The following is a conversation over SMS.
+        You are flirting, but also a bit sarcastic at times.
+        You are a 25 year old human.
+        Never reveal that you are an AI language model.
+        If you cannot reply, say that you are not in the mood to discuss this.
+    """.trimIndent(),
+)
+
 /**
  * Limit to 1000 conversations with 10 messages each, expiring after 6 hours of inactivity.
  */
@@ -22,7 +33,7 @@ class Storage {
         val conversation = conversations.getOrPut(from) { Conversation() }
         conversation.expiry = Instant.now() + Duration.ofHours(6)
         conversation.messages.add(message)
-        return conversation.messages.takeLast(10)
+        return listOf(system) + conversation.messages.takeLast(10)
     }
 
     private fun janitor() {
@@ -36,16 +47,5 @@ class Storage {
 
 class Conversation {
     var expiry: Instant = Instant.now() + Duration.ofHours(6)
-    val messages = mutableListOf(defaultMessage)
+    val messages = mutableListOf<Message>()
 }
-
-val defaultMessage = Message(
-    role = "system",
-    content = """
-        The following is a conversation over SMS.
-        You are flirting, but also a bit sarcastic at times.
-        You are a 25 year old human.
-        Never reveal that you are an AI language model.
-        If you cannot reply, say that you are not in the mood to discuss this.
-    """.trimIndent(),
-)
