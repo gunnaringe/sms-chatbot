@@ -7,15 +7,12 @@ import com.github.gunnaringe.smschatbot.clients.SendSms
 import com.sksamuel.hoplite.ConfigLoaderBuilder
 import com.sksamuel.hoplite.addEnvironmentSource
 import com.sksamuel.hoplite.addFileSource
-import com.wgtwo.api.v1.sms.SmsProto
-import com.wgtwo.api.v1.sms.SmsServiceGrpc
 import com.wgtwo.auth.WgtwoAuth
 import io.grpc.ManagedChannelBuilder
 import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeUnit
 
 private val logger = LoggerFactory.getLogger("com.github.gunnaringe.smschatbot.Main")
-
 private val scope = setOf("sms.text:send_from_subscriber", "events.sms.subscribe")
 
 fun main(args: Array<String>) {
@@ -31,6 +28,8 @@ fun main(args: Array<String>) {
     val tokenSource = wgtwoAuth.clientCredentials.newTokenSource(scope.joinToString(separator = " "))
 
     val storage = Storage()
+    val policy = Policy(config.phones)
+    val ratelimiter = Ratelimiter(config.ratelimit)
     val chatGPT = ChatGPT(config.openai.apiKey.value)
 
     val channel = ManagedChannelBuilder.forAddress("api.wgtwo.com", 443)
@@ -43,12 +42,11 @@ fun main(args: Array<String>) {
     val sendSmsClient = SendSms(channel, tokenSource)
 
     ReceiveSms(channel, tokenSource, config.wg2.eventQueue) { sms ->
-        if (sms.to !in config.phones) {
-            logger.warn("Ignoring SMS - Non-configured phone number: {}", sms.to)
+        if (!policy.isAllowed(sms.from, sms.to)) {
             return@ReceiveSms
         }
-        if (sms.to == sms.from) {
-            logger.warn("Ignoring SMS - Sent to self: {}", sms.to)
+        if (!ratelimiter.allow(sms.from)) {
+            logger.warn("[BLOCK] {} -> {}: Hitting rate limit for sender", sms.from, sms.to)
             return@ReceiveSms
         }
 

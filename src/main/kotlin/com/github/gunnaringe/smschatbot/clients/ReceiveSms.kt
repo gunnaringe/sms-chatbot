@@ -52,7 +52,6 @@ class ReceiveSms(
         EventsServiceGrpc.newBlockingStub(channel)
             .withCallCredentials(tokenSource.callCredentials())
             .subscribe(request)
-            .asSequence()
             .forEach {
                 executor.submit {
                     val ackRequest = EventsProto.AckRequest.newBuilder()
