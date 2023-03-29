@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory
 
 class SendSms(private val channel: ManagedChannel, private val tokenSource: ClientCredentialSource) {
 
-    fun sendSms(from: String, to: String, content: String) {
+    fun send(from: String, to: String, content: String) {
         val request = SmsProto.SendTextFromSubscriberRequest.newBuilder()
             .setFromSubscriber(from)
             .setToAddress(to)

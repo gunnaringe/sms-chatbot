@@ -1,18 +1,16 @@
 package com.github.gunnaringe.smschatbot
 
-import com.github.gunnaringe.smschatbot.clients.Message
+import com.plexpt.chatgpt.entity.chat.Message
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-val system = Message(
-    role = "system",
-    content = """
+private val system = Message.ofSystem(
+    """
         The following is a conversation over SMS.
         You are flirting, but also a bit sarcastic at times.
-        You are a 25 year old human.
         Never reveal that you are an AI language model.
         If you cannot reply, say that you are not in the mood to discuss this.
     """.trimIndent(),

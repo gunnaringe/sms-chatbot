@@ -47,6 +47,13 @@
             <version>${wg2-auth.version}</version>
         </dependency>
 
+        <!-- ChatGPT -->
+        <dependency>
+            <groupId>com.github.plexpt</groupId>
+            <artifactId>chatgpt</artifactId>
+            <version>4.0.1</version>
+        </dependency>
+
         <!-- gRPC -->
         <dependency>
             <groupId>io.grpc</groupId>

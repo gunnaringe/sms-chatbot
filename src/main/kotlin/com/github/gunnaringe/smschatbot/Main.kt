@@ -1,9 +1,10 @@
 package com.github.gunnaringe.smschatbot
 
-import com.github.gunnaringe.smschatbot.clients.ChatGPT
-import com.github.gunnaringe.smschatbot.clients.Message
 import com.github.gunnaringe.smschatbot.clients.ReceiveSms
 import com.github.gunnaringe.smschatbot.clients.SendSms
+import com.plexpt.chatgpt.ChatGPT
+import com.plexpt.chatgpt.entity.chat.ChatCompletion
+import com.plexpt.chatgpt.entity.chat.Message
 import com.sksamuel.hoplite.ConfigLoaderBuilder
 import com.sksamuel.hoplite.addEnvironmentSource
 import com.sksamuel.hoplite.addFileSource
@@ -30,7 +31,11 @@ fun main(args: Array<String>) {
     val storage = Storage()
     val policy = Policy(config.phones)
     val ratelimiter = Ratelimiter(config.ratelimit)
-    val chatGPT = ChatGPT(config.openai.apiKey.value)
+
+    val chatGPT = ChatGPT.builder()
+        .apiKey(config.openai.apiKey.value)
+        .build()
+        .init()
 
     val channel = ManagedChannelBuilder.forAddress("api.wgtwo.com", 443)
         .useTransportSecurity()
@@ -53,11 +58,24 @@ fun main(args: Array<String>) {
         val sendTo = sms.from
         val sendFrom = sms.to
 
-        val messages = storage.store(sms.from, Message(role = "user", content = sms.content))
-        val response = chatGPT.generateResponse(messages)
-        val botReply = response.choices.first().message
+        val messages = storage.store(sms.from, Message("user", sms.content))
 
-        val conversation = storage.store(sms.from, botReply)
+        val chatCompletion = ChatCompletion.builder()
+            .model("gpt-3.5-turbo")
+            .messages(messages)
+            .maxTokens(1000)
+            .build()
+
+        val response = chatGPT.chatCompletion(chatCompletion)
+        val responseMessage = response.choices.first().message
+        val conversation = storage.store(sms.from, responseMessage)
+
+        logger.info(
+            "Spent {} tokens - prompt: {} completion: {}",
+            response.usage.totalTokens,
+            response.usage.promptTokens,
+            response.usage.completionTokens,
+        )
 
         println(
             """
@@ -67,7 +85,7 @@ fun main(args: Array<String>) {
             """.trimMargin(),
         )
 
-        sendSmsClient.sendSms(sendFrom, sendTo, botReply.content.trim())
+        sendSmsClient.send(sendFrom, sendTo, responseMessage.content.trim())
     }
 
     blockUntilInterrupted()
