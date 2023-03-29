@@ -76,15 +76,7 @@ fun main(args: Array<String>) {
             response.usage.promptTokens,
             response.usage.completionTokens,
         )
-
-        println(
-            """
-            | ${sms.from}:
-            |   ${conversation.joinToString(separator = "\n") { "  - ${it.role} => ${it.content}" }}}
-            |
-            """.trimMargin(),
-        )
-
+        print(sms.from, conversation)
         sendSmsClient.send(sendFrom, sendTo, responseMessage.content.trim())
     }
 
@@ -97,4 +89,18 @@ fun main(args: Array<String>) {
 private fun blockUntilInterrupted() = try {
     Thread.currentThread().join()
 } catch (e: InterruptedException) {
+}
+
+private fun print(user: String, messages: List<Message>) {
+    val output = buildString {
+        appendLine("Conversation with $user:")
+        messages.forEach { message ->
+            appendLine("${message.role}:")
+            message.content.lines().forEach { line ->
+                appendLine("  $line")
+            }
+        }
+        appendLine("----")
+    }
+    print(output)
 }

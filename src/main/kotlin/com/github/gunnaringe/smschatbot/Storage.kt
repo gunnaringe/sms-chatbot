@@ -1,11 +1,10 @@
 package com.github.gunnaringe.smschatbot
 
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
 import com.plexpt.chatgpt.entity.chat.Message
 import java.time.Duration
 import java.time.Instant
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
 private val system = Message.ofSystem(
     """
@@ -17,33 +16,28 @@ private val system = Message.ofSystem(
 )
 
 /**
- * Limit to 1000 conversations with 10 messages each, expiring after 6 hours of inactivity.
+ * Limit to 1000 conversations, where each conversation is limited to 10 messages that are deleted after 30 minutes.
  */
 class Storage {
-    private val conversations = ConcurrentHashMap<String, Conversation>()
-    private val executor = Executors.newSingleThreadScheduledExecutor()
+    private val conversations = Caffeine.newBuilder()
+        .maximumSize(maxConversations)
+        .expireAfterAccess(expiry)
+        .build<String, Cache<Long, Message>> {
+            Caffeine.newBuilder()
+                .maximumSize(maxMessagesPerConversation)
+                .expireAfterWrite(expiry)
+                .build()
+        }
 
-    init {
-        executor.scheduleAtFixedRate(this::janitor, 1, 10, TimeUnit.MINUTES)
+    fun store(user: String, message: Message): List<Message> {
+        val conversation = conversations.get(user)
+        conversation.put(Instant.now().epochSecond, message)
+        return listOf(system) + conversation.asMap().toList().sortedBy { it.first }.map { it.second }
     }
 
-    fun store(from: String, message: Message): List<Message> {
-        val conversation = conversations.getOrPut(from) { Conversation() }
-        conversation.expiry = Instant.now() + Duration.ofHours(6)
-        conversation.messages.add(message)
-        return listOf(system) + conversation.messages.takeLast(10)
+    companion object {
+        private val expiry = Duration.ofMinutes(30)
+        private const val maxConversations: Long = 1000
+        private const val maxMessagesPerConversation: Long = 10
     }
-
-    private fun janitor() {
-        // Remove expired conversations
-        conversations.entries.removeIf { it.value.expiry.isBefore(Instant.now()) }
-
-        // Trim list to 10 last messages
-        conversations.values.dropWhile { it.messages.size > 10 }
-    }
-}
-
-class Conversation {
-    var expiry: Instant = Instant.now() + Duration.ofHours(6)
-    val messages = mutableListOf<Message>()
 }
