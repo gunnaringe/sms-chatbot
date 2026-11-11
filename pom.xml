@@ -49,7 +49,7 @@
         <dependency>
             <groupId>com.github.plexpt</groupId>
             <artifactId>chatgpt</artifactId>
-            <version>4.0.1</version>
+            <version>5.1.1</version>
         </dependency>
 
         <!-- gRPC -->
