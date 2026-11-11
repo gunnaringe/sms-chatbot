@@ -17,7 +17,7 @@
         <grpc.version>1.53.0</grpc.version>
         <wg2-api.version>1.10.1</wg2-api.version>
         <wg2-auth.version>0.0.3</wg2-auth.version>
-        <hoplite.version>2.7.3</hoplite.version>
+        <hoplite.version>3.0.5</hoplite.version>
         <wg2-api-v0.version>0.1.2</wg2-api-v0.version>
     </properties>
 
